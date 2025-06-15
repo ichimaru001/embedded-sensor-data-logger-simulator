@@ -11,33 +11,29 @@ int main() {
   clock_t lastCountdownUpdate = start;
 
 
-
-
   while (1)
   {
     clock_t now = clock();
-    double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
+    clock_t elapsed = now - start;
+
     // update last sensor read 
-    if (elapsed - lastSensorRead >= sensorReadingDelay) {
-      printf("Sensor has been read: %f seconds", elapsed - lastSensorRead);
+    if (elapsed - lastSensorRead >= sensorReadingDelay * CLOCKS_PER_SEC) {
+      printf("\nSensor has been read: %.2f milliseconds\n", (double)(elapsed - lastSensorRead) * 1000 / CLOCKS_PER_SEC);
       lastSensorRead = elapsed;
     }
     // update last countdown update
-    if (elapsed - lastCountdownUpdate >= 1) {
+    if (elapsed - lastCountdownUpdate >= 1 * CLOCKS_PER_SEC) {
       countdown--;
-      printf("Countdown is now %d", countdown);
+      printf("\nCountdown is now %d\n", countdown);
       lastCountdownUpdate = elapsed;
     }
     if (countdown <= 0) {
       break;
     }
+
+    Sleep(1);
   }
 
-
-
-
-  // clock_t end = clock();
-  // printf("%d", end);
 
 
   return 0;
