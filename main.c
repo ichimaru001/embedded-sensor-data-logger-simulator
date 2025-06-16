@@ -6,7 +6,7 @@
 //                        FROM SENSORS, LOGS THEM TO MEMORY, AND ALLOWS EXTERNAL 
 //                        TO LOGS.               
 // -
-// TIME TAKEN     :       (17MINS, )
+// TIME TAKEN     :       (17MINS, 1HR 44MINS)
 // TO COMPLETE
 
 #include <stdio.h>
@@ -20,8 +20,7 @@
 #define BUSY_MASK         0b0001<<1 // 00 00 00 10
 #define DATA_READY_MASK   0b0001<<2 // 00 00 01 00
 #define ERROR_MASK        0b0001<<3 // 00 00 10 00
-#define READY_LOG_MASK    0b0001<<4 // 00 01 00 00 
-#define RESERVED_MASK     0b1110<<4 // 11 10 00 00
+#define RESERVED_MASK     0b1111<<4 // 11 11 00 00
 
 #define STATUS_ON 1
 #define STATUS_OFF 0
