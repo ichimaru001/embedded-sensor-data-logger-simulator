@@ -19,7 +19,8 @@
 #define E_INVALID_PARAM 2
 #define E_FILE_ERROR 3
 
-#define NUM_SENSORS 6
+#define NUM_SENSORS 4
+
 
 typedef struct {
   uint8_t sensorID;        // max 255
@@ -28,67 +29,52 @@ typedef struct {
 } sensorRegister;
 
 int checkIfSensorBusy(sensorRegister *sensor) {
-  if (sensor->sensorID > 255) {
-    printf("\nError has occurred!\n");
-    sensor->sensorStatus |= ERROR_MASK;
-    return E_INVALID_SENSOR;
-  }
-
-  // printf("\nDATA_READY_MASK is %d\n", DATA_READY_MASK);
-  // printf("\nBUSY_MASK is %d\n", BUSY_MASK);
+  // printf("DATA_READY_MASK is %d\n", DATA_READY_MASK);
+  // printf("BUSY_MASK is %d\n", BUSY_MASK);
 
   // check that sensor is not data ready
   sensor->sensorStatus &= ~DATA_READY_MASK;
   // set sensor to busy
   sensor->sensorStatus &= ~BUSY_MASK;
   sensor->sensorStatus |= BUSY_MASK;
-  printf("\nSensor is set to busy!\n");
-  // printf("\nSensor register is %X\n", sensor->sensorStatus);
+  printf("Sensor with ID %d is set to busy!\n", sensor->sensorID);
+  // printf("Sensor register is %X\n", sensor->sensorStatus);
 
   return E_SUCCESS;
 }
-
 int checkIfSensorDataReady(sensorRegister *sensor) {
-  if (sensor->sensorID > 255) {
-    printf("\nError has occurred!\n");
-    sensor->sensorStatus |= ERROR_MASK;
-    return E_INVALID_SENSOR;
-  }
-
   // set sensor to data ready - ready to be logged
   sensor->sensorStatus &= ~DATA_READY_MASK;
   sensor->sensorStatus |= DATA_READY_MASK;
-  printf("\nSensor is set to data ready!\n");
+  printf("Sensor with ID %d is set to data ready!\n", sensor->sensorID);
   // set sensor to not be busy
   sensor->sensorStatus &= ~BUSY_MASK;
 
   return E_SUCCESS;
 }
-
 int powerOnOffSensor(sensorRegister *sensor, uint8_t onOrOff) {
-  if (sensor->sensorID > 255) {
-    printf("\nError has occurred!\n");
-    sensor->sensorStatus |= ERROR_MASK;
-    return E_INVALID_SENSOR;
-  }
-
   if (onOrOff == STATUS_ON) {
     sensor->sensorStatus |= POWER_ON_MASK;
-    printf("\nSensor is powered on!\n");
+    printf("Sensor with ID %d is powered on!\n", sensor->sensorID);
     return E_SUCCESS;
   }
   else if (onOrOff == STATUS_OFF) {
     sensor->sensorStatus &= ~POWER_ON_MASK;
-    printf("\nSensor is powered off!\n");
+    printf("Sensor with ID %d is powered off!\n", sensor->sensorID);
     return E_SUCCESS;
   }
   else {
-    printf("\nError has occurred!\n");
+    printf("\nError has occurred in sensor with ID %d!\n", sensor->sensorID);
     sensor->sensorStatus |= ERROR_MASK;
     return E_INVALID_PARAM;
   }
 }
+int initializeSensor(sensorRegister *sensor) {
+  sensor->sensorStatus = 0;
+  printf("Sensor with ID %d has been initialized!\n", sensor->sensorID);
 
+  return E_SUCCESS;
+}
 
 
 int main() {
@@ -96,12 +82,16 @@ int main() {
   sensorRegister sensor1;
   sensor1.sensorID = 1;
   sensor1.sensorReadDelay = 5;
-  sensor1.sensorStatus = 0;
+
+  sensorRegister sensor2;
+  sensor2.sensorID = 2;
+  sensor2.sensorReadDelay = 3;
 
   sensorRegister *currentSensor;
-  currentSensor = &sensor1;
+  currentSensor = &sensor2;
 
-  // powering on the sensor
+  // initializing / powering on the sensor
+  initializeSensor(currentSensor);
   powerOnOffSensor(currentSensor, STATUS_ON);
 
   clock_t start = clock();
@@ -127,7 +117,7 @@ int main() {
       }
       // prints if sensor is data ready
       if (currentSensor->sensorStatus & DATA_READY_MASK) {
-        printf("\nSensor has been read: %.2f milliseconds\n", (double)(elapsed - lastSensorRead) * 1000 / CLOCKS_PER_SEC);
+        printf("Sensor with ID %d has been read: %.2f milliseconds\n", currentSensor->sensorID, (double)(elapsed - lastSensorRead) * 1000 / CLOCKS_PER_SEC);
       }
       lastSensorRead = elapsed;
     }
@@ -136,7 +126,7 @@ int main() {
     // update last countdown update
     if (elapsed - lastCountdownUpdate >= 1 * CLOCKS_PER_SEC) {
       countdown--;
-      printf("\nCountdown is now %d\n", countdown);
+      printf("Countdown is now %d\n", countdown);
       lastCountdownUpdate = elapsed;
     }
     if (countdown <= 0) {
