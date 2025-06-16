@@ -3,8 +3,7 @@
 #include <Windows.h>
 #include <stdint.h>
 
-// *** BITWISE FLAGS
-// ** BITWISE MASKS  
+// bitwise masks
 #define POWER_ON_MASK     ((uint8_t)(1U<<0))  // 00 00 00 01 (1)
 #define BUSY_MASK         ((uint8_t)(1U<<1))  // 00 00 00 10 (2)
 #define DATA_READY_MASK   ((uint8_t)(1U<<2))  // 00 00 01 00 (4)
@@ -21,6 +20,7 @@
 #define E_FILE_ERROR 3
 
 #define NUM_SENSORS 4
+#define SLEEP_INTERVAL_MS 10
 
 
 typedef struct {
@@ -30,23 +30,21 @@ typedef struct {
   uint8_t sensorStatus;
 } sensorRegister;
 
-int checkIfSensorBusy(sensorRegister *sensor) {
+int setSensorBusy(sensorRegister *sensor) {
   // printf("DATA_READY_MASK is %d\n", DATA_READY_MASK);
   // printf("BUSY_MASK is %d\n", BUSY_MASK);
 
   // check that sensor is not data ready
   sensor->sensorStatus &= ~DATA_READY_MASK;
   // set sensor to busy
-  sensor->sensorStatus &= ~BUSY_MASK;
   sensor->sensorStatus |= BUSY_MASK;
   printf("Sensor with ID %d is set to busy!\n", sensor->sensorID);
   // printf("Sensor register is %X\n", sensor->sensorStatus);
 
   return E_SUCCESS;
 }
-int checkIfSensorDataReady(sensorRegister *sensor) {
+int setSensorDataReady(sensorRegister *sensor) {
   // set sensor to data ready - ready to be logged
-  sensor->sensorStatus &= ~DATA_READY_MASK;
   sensor->sensorStatus |= DATA_READY_MASK;
   printf("Sensor with ID %d is set to data ready!\n", sensor->sensorID);
   // set sensor to not be busy
@@ -94,6 +92,10 @@ int logOnOffSensor(sensorRegister *sensor, uint8_t onOrOff) {
     return E_INVALID_PARAM;
   }
 }
+int printSensorStatus(sensorRegister *sensor) {
+  printf("Sensor ID %d has status 0x%02X\n", sensor->sensorID, sensor->sensorStatus);
+  return E_SUCCESS;
+}
 
 int main() {
   sensorRegister sensorList[NUM_SENSORS] = { 0 };
@@ -111,13 +113,26 @@ int main() {
   sensorList[3].sensorID = 3;
   sensorList[3].sensorReadDelay = 6;
 
-  // initializing / powering on the sensor
+  // test sensor1
+  initializeSensor(&sensorList[1]);
+  logOnOffSensor(&sensorList[1], STATUS_ON);
+  powerOnOffSensor(&sensorList[1], STATUS_ON);
+  // test sensor3
+  initializeSensor(&sensorList[3]);
+  logOnOffSensor(&sensorList[3], STATUS_ON);
+  powerOnOffSensor(&sensorList[3], STATUS_ON);
+
+  uint8_t numPoweredOnSensors = 0;
+
+  // check how many sensors are on
   for (int i = 0; i < NUM_SENSORS; i++)
   {
-    initializeSensor(&sensorList[i]);
-    logOnOffSensor(&sensorList[i], STATUS_ON);
-    powerOnOffSensor(&sensorList[i], STATUS_ON);
+    if (sensorList[i].sensorStatus & POWER_ON_MASK) {
+      numPoweredOnSensors++;
+    }
   }
+
+  printf("\nThere are currently %d powered on sensors!\n", numPoweredOnSensors);
 
   clock_t start = clock();
   uint8_t countdown = 25; // 25 seconds
@@ -132,19 +147,19 @@ int main() {
 
     for (int i = 0; i < NUM_SENSORS; i++)
     {
-      if (!(sensorList[i].sensorStatus & BUSY_MASK)) {
-        checkIfSensorBusy(&sensorList[i]);
+      if ((sensorList[i].sensorStatus & POWER_ON_MASK) && (!(sensorList[i].sensorStatus & BUSY_MASK))) {
+        setSensorBusy(&sensorList[i]);
       }
 
       // update last sensor read 
-      if (sensorList[i].elapsedSinceLastRead >= sensorList[i].sensorReadDelay) {
+      if ((sensorList[i].sensorStatus & POWER_ON_MASK) && (sensorList[i].elapsedSinceLastRead >= sensorList[i].sensorReadDelay)) {
         // sensor is set to data ready
         if (!(sensorList[i].sensorStatus & DATA_READY_MASK)) {
-          checkIfSensorDataReady(&sensorList[i]);
+          setSensorDataReady(&sensorList[i]);
         }
         // prints if sensor is data ready
         if ((sensorList[i].sensorStatus & DATA_READY_MASK) && (sensorList[i].sensorStatus & LOG_MASK)) {
-          printf("Sensor with ID %d has been read: %d milliseconds\n", sensorList[i].sensorID, sensorList[i].elapsedSinceLastRead * 1000);
+          printf("Sensor with ID %d has been read: %d seconds\n", sensorList[i].sensorID, sensorList[i].elapsedSinceLastRead);
         }
 
         // resets elapsed since last read for each sensor to 0
@@ -157,7 +172,9 @@ int main() {
       countdown--;
       for (int i = 0; i < NUM_SENSORS; i++)
       {
-        sensorList[i].elapsedSinceLastRead++;
+        if (sensorList[i].sensorStatus & POWER_ON_MASK) {
+          sensorList[i].elapsedSinceLastRead++;
+        }
       }
 
       printf("Countdown is now %d\n", countdown);
@@ -166,14 +183,17 @@ int main() {
     if (countdown <= 0) {
       for (int i = 0; i < NUM_SENSORS; i++)
       {
-        powerOnOffSensor(&sensorList[i], STATUS_OFF);
-        initializeSensor(&sensorList[i]);
+        if (sensorList[i].sensorStatus & POWER_ON_MASK) {
+          powerOnOffSensor(&sensorList[i], STATUS_OFF);
+          initializeSensor(&sensorList[i]);
+        }
       }
 
+      numPoweredOnSensors = 0;
       break;
     }
 
-    Sleep(10);
+    Sleep(SLEEP_INTERVAL_MS);
   }
 
 
