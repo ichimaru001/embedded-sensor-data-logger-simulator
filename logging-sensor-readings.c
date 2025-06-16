@@ -4,28 +4,12 @@
 #include <stdint.h>
 
 // *** BITWISE FLAGS
-// ** BITWISE MASKS
-#define POWER_ON_MASK     ((uint8_t)(1U<<0)) 
-// 00 00 00 01
-#define BUSY_MASK         ((uint8_t)(1U<<1)) 
-// 00 00 00 10
-#define DATA_READY_MASK   ((uint8_t)(1U<<2)) 
-// 00 00 01 00
-#define ERROR_MASK        ((uint8_t)(1U<<3)) 
-// 00 00 10 00
-#define RESERVED_MASK     ((uint8_t)(15U<<4)) 
-// 11 11 00 00
-
-// #define POWER_ON_MASK     1
-// 00 00 00 01
-// #define BUSY_MASK         2
-// 00 00 00 10
-// #define DATA_READY_MASK   4
-// 00 00 01 00
-// #define ERROR_MASK        8
-// 00 00 10 00
-// #define RESERVED_MASK     240
-// 11 11 00 00
+// ** BITWISE MASKS  
+#define POWER_ON_MASK     ((uint8_t)(1U<<0))  // 00 00 00 01 (1)
+#define BUSY_MASK         ((uint8_t)(1U<<1))  // 00 00 00 10 (2)
+#define DATA_READY_MASK   ((uint8_t)(1U<<2))  // 00 00 01 00 (4)
+#define ERROR_MASK        ((uint8_t)(1U<<3))  // 00 00 10 00 (8)
+#define RESERVED_MASK     ((uint8_t)(15U<<4)) // 11 11 00 00 (240)
 
 #define STATUS_ON 1
 #define STATUS_OFF 0
@@ -50,16 +34,16 @@ int checkIfSensorBusy(sensorRegister *sensor) {
     return E_INVALID_SENSOR;
   }
 
-  // check that sensor is not data ready
   // printf("\nDATA_READY_MASK is %d\n", DATA_READY_MASK);
   // printf("\nBUSY_MASK is %d\n", BUSY_MASK);
+
+  // check that sensor is not data ready
   sensor->sensorStatus &= ~DATA_READY_MASK;
-  // sensor->sensorStatus = sensor->sensorStatus & ~DATA_READY_MASK;
   // set sensor to busy
   sensor->sensorStatus &= ~BUSY_MASK;
   sensor->sensorStatus |= BUSY_MASK;
   printf("\nSensor is set to busy!\n");
-  printf("\nSensor register is %X\n", sensor->sensorStatus);
+  // printf("\nSensor register is %X\n", sensor->sensorStatus);
 
   return E_SUCCESS;
 }
@@ -88,12 +72,12 @@ int powerOnOffSensor(sensorRegister *sensor, uint8_t onOrOff) {
     return E_INVALID_SENSOR;
   }
 
-  if (onOrOff == 1) {
+  if (onOrOff == STATUS_ON) {
     sensor->sensorStatus |= POWER_ON_MASK;
     printf("\nSensor is powered on!\n");
     return E_SUCCESS;
   }
-  else if (onOrOff == 0) {
+  else if (onOrOff == STATUS_OFF) {
     sensor->sensorStatus &= ~POWER_ON_MASK;
     printf("\nSensor is powered off!\n");
     return E_SUCCESS;
@@ -115,9 +99,7 @@ int main() {
   sensor1.sensorStatus = 0;
 
   // powering on the sensor
-  powerOnOffSensor(&sensor1, 1);
-
-  uint8_t ifLogOn = 1;
+  powerOnOffSensor(&sensor1, STATUS_ON);
 
   clock_t start = clock();
   uint8_t countdown = 25; // 25 seconds
@@ -126,20 +108,14 @@ int main() {
   clock_t lastCountdownUpdate = start;
 
 
-
   while (sensor1.sensorStatus & POWER_ON_MASK) // when sensor is powered on
   {
     clock_t now = clock();
     clock_t elapsed = now - start;
 
-    // if (sensor1.sensorStatus & POWER_ON_MASK) {
-    //   printf("\nSensor is still powered on!\n");
-    //   printf("\nSensor register is %X\n", sensor1.sensorStatus);
-    // }
     if (!(sensor1.sensorStatus & BUSY_MASK)) {
       checkIfSensorBusy(&sensor1);
     }
-
 
     // update last sensor read 
     if (elapsed - lastSensorRead >= sensorReadingDelay * CLOCKS_PER_SEC) {
@@ -168,8 +144,6 @@ int main() {
     Sleep(1);
   }
 
-  printf("\nSensor is now powered off!\n");
-  printf("\nSensor register is %X\n", sensor1.sensorStatus);
 
   return 0;
 }
