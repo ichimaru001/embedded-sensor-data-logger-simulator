@@ -9,7 +9,8 @@
 #define BUSY_MASK         ((uint8_t)(1U<<1))  // 00 00 00 10 (2)
 #define DATA_READY_MASK   ((uint8_t)(1U<<2))  // 00 00 01 00 (4)
 #define ERROR_MASK        ((uint8_t)(1U<<3))  // 00 00 10 00 (8)
-#define RESERVED_MASK     ((uint8_t)(15U<<4)) // 11 11 00 00 (240)
+#define LOG_MASK          ((uint8_t)(1U<<4))  // 00 01 00 00 (16)
+#define RESERVED_MASK     ((uint8_t)(14U<<4)) // 11 10 00 00 (224)
 
 #define STATUS_ON 1
 #define STATUS_OFF 0
@@ -75,10 +76,25 @@ int initializeSensor(sensorRegister *sensor) {
 
   return E_SUCCESS;
 }
-
+int logOnOffSensor(sensorRegister *sensor, uint8_t onOrOff) {
+  if (onOrOff == STATUS_ON) {
+    sensor->sensorStatus |= LOG_MASK;
+    printf("Sensor with ID %d has log on!\n", sensor->sensorID);
+    return E_SUCCESS;
+  }
+  else if (onOrOff == STATUS_OFF) {
+    sensor->sensorStatus &= ~LOG_MASK;
+    printf("Sensor with ID %d has log off!\n", sensor->sensorID);
+    return E_SUCCESS;
+  }
+  else {
+    printf("\nError has occurred in sensor with ID %d!\n", sensor->sensorID);
+    sensor->sensorStatus |= ERROR_MASK;
+    return E_INVALID_PARAM;
+  }
+}
 
 int main() {
-
   sensorRegister sensor1;
   sensor1.sensorID = 1;
   sensor1.sensorReadDelay = 5;
@@ -92,6 +108,7 @@ int main() {
 
   // initializing / powering on the sensor
   initializeSensor(currentSensor);
+  logOnOffSensor(currentSensor, STATUS_ON);
   powerOnOffSensor(currentSensor, STATUS_ON);
 
   clock_t start = clock();
@@ -116,12 +133,11 @@ int main() {
         checkIfSensorDataReady(currentSensor);
       }
       // prints if sensor is data ready
-      if (currentSensor->sensorStatus & DATA_READY_MASK) {
+      if ((currentSensor->sensorStatus & DATA_READY_MASK) && (currentSensor->sensorStatus & LOG_MASK)) {
         printf("Sensor with ID %d has been read: %.2f milliseconds\n", currentSensor->sensorID, (double)(elapsed - lastSensorRead) * 1000 / CLOCKS_PER_SEC);
       }
       lastSensorRead = elapsed;
     }
-
 
     // update last countdown update
     if (elapsed - lastCountdownUpdate >= 1 * CLOCKS_PER_SEC) {
