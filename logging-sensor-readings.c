@@ -98,32 +98,35 @@ int main() {
   sensor1.sensorReadDelay = 5;
   sensor1.sensorStatus = 0;
 
+  sensorRegister *currentSensor;
+  currentSensor = &sensor1;
+
   // powering on the sensor
-  powerOnOffSensor(&sensor1, STATUS_ON);
+  powerOnOffSensor(currentSensor, STATUS_ON);
 
   clock_t start = clock();
   uint8_t countdown = 25; // 25 seconds
-  uint8_t sensorReadingDelay = sensor1.sensorReadDelay; // 5 seconds
+  uint8_t sensorReadingDelay = currentSensor->sensorReadDelay; // 5 seconds
   clock_t lastSensorRead = start;
   clock_t lastCountdownUpdate = start;
 
 
-  while (sensor1.sensorStatus & POWER_ON_MASK) // when sensor is powered on
+  while (currentSensor->sensorStatus & POWER_ON_MASK) // when sensor is powered on
   {
     clock_t now = clock();
     clock_t elapsed = now - start;
 
-    if (!(sensor1.sensorStatus & BUSY_MASK)) {
-      checkIfSensorBusy(&sensor1);
+    if (!(currentSensor->sensorStatus & BUSY_MASK)) {
+      checkIfSensorBusy(currentSensor);
     }
 
     // update last sensor read 
     if (elapsed - lastSensorRead >= sensorReadingDelay * CLOCKS_PER_SEC) {
-      if (!(sensor1.sensorStatus & DATA_READY_MASK)) {
-        checkIfSensorDataReady(&sensor1);
+      if (!(currentSensor->sensorStatus & DATA_READY_MASK)) {
+        checkIfSensorDataReady(currentSensor);
       }
       // prints if sensor is data ready
-      if (sensor1.sensorStatus & DATA_READY_MASK) {
+      if (currentSensor->sensorStatus & DATA_READY_MASK) {
         printf("\nSensor has been read: %.2f milliseconds\n", (double)(elapsed - lastSensorRead) * 1000 / CLOCKS_PER_SEC);
       }
       lastSensorRead = elapsed;
@@ -137,7 +140,7 @@ int main() {
       lastCountdownUpdate = elapsed;
     }
     if (countdown <= 0) {
-      powerOnOffSensor(&sensor1, 0);
+      powerOnOffSensor(currentSensor, 0);
       break;
     }
 
