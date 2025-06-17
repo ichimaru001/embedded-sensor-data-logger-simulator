@@ -1,2 +1,0 @@
-)) {
-        checkIfSensorBusy(&sensorList[i]);
