@@ -275,8 +275,18 @@ int setSensorReadDelay(sensorRegister *sensorList, int *numCreatedSensors, int u
   }
 }
 
+int setSensorCountdown(int *sensorCountdown, int userSensorCountdown) {
+  // max 255 seconds
+  if (userSensorCountdown <= 255 && userSensorCountdown >= 1) {
+    *sensorCountdown = userSensorCountdown;
+  }
+  else {
+    printf("\nError occurred!\nCountdown entered must be in between 1 and 255 inclusive!\n");
+    return E_INVALID_PARAM;
+  }
+}
 
-void shell(sensorRegister *sensorList, int *numCreatedSensors) {
+void shell(sensorRegister *sensorList, int *numCreatedSensors, int *sensorCountdown) {
   char userChoice[13] = "\0";
 
   do
@@ -303,7 +313,6 @@ void shell(sensorRegister *sensorList, int *numCreatedSensors) {
 
     if (strcmp(userChoice, "sensor_list") == 0) {
       char userChoiceSensorList[13] = "\0";
-
       while (!(strcmp(userChoiceSensorList, "previous") == 0))
       {
         printf("\n** SENSOR LIST **\n");
@@ -401,6 +410,45 @@ void shell(sensorRegister *sensorList, int *numCreatedSensors) {
         }
       }
     }
+    if (strcmp(userChoice, "sensor_read") == 0) {
+      char userChoiceSensorRead[13] = "\0";
+      while (!(strcmp(userChoiceSensorRead, "previous") == 0))
+      {
+        printf("\n** SENSOR READ **\n");
+        // admin commands
+        printf("  countdown     -     Sets how long the sensors will take readings for (max 255 seconds)\n");
+        printf("  start         -     starts the countdown and sensor begin taking readings\n");
+        // list of sensors e.g.
+        printf("  ---\n");
+        printf("  Total:              %d\n", *numCreatedSensors);
+        printAllSensorStatuses(sensorList, *numCreatedSensors);
+        printf("  ---\n");
+        printf("  Current countdown: %d seconds\n", *sensorCountdown);
+        printf("  ---\n");
+        printf("  previous      -     Go to the main menu\n");
+
+        printf("Enter a command: ");
+        fgets(userChoiceSensorRead, sizeof(userChoiceSensorRead), stdin);
+        userChoiceSensorRead[strlen(userChoiceSensorRead) - 1] = '\0';
+
+        if (strcmp(userChoiceSensorRead, "countdown") == 0) {
+          int userSensorCountdown = 0;
+          printf("** SETTING COUNTDOWN **\n");
+          printf("Enter the number of seconds (1-255 inclusive): ");
+          scanf(" %d", &userSensorCountdown);
+
+          // clears the input buffer
+          while (getchar() != '\n');
+
+          setSensorCountdown(sensorCountdown, userSensorCountdown);
+        }
+        if (strcmp(userChoiceSensorRead, "start") == 0) {
+          printf("** COUNTDOWN STARTED **\n");
+
+        }
+      }
+
+    }
   } while (!(strcmp(userChoice, "exit") == 0));
 }
 
@@ -469,6 +517,7 @@ int main() {
 
   sensorRegister sensorList[NUM_SENSORS] = { 0 };
   int numCreatedSensors = 2;
+  int sensorCountdown = 30; // default value is 30 seconds
 
   // if (numCreatedSensors > 0) {
   //   startCountdownTakeReadings(sensorList);
@@ -498,7 +547,7 @@ int main() {
   logOnOffSensor(sensorList, &numCreatedSensors, STATUS_ON, 1);
   powerOnOffSensor(sensorList, &numCreatedSensors, STATUS_ON, 1);
 
-  shell(sensorList, &numCreatedSensors);
+  shell(sensorList, &numCreatedSensors, &sensorCountdown);
 
 
   return 0;
