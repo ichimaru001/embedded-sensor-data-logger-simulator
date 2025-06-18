@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 // bitwise masks
 #define POWER_ON_MASK     ((uint8_t)(1U<<0))  // 00 00 00 01 (1)
@@ -30,6 +31,17 @@ typedef struct {
   uint8_t elapsedSinceLastRead; // 255 seconds max elapsed
   uint8_t sensorStatus;
 } sensorRegister;
+
+
+void getTime(char *stringBuffer, size_t bufferSize) {
+  time_t rawtime = 0;
+  struct tm *pTime = NULL;
+
+  time(&rawtime);
+  pTime = localtime(&rawtime);
+
+  snprintf(stringBuffer, bufferSize, "%02d/%02d/%02d - %02d:%02d:%02d", pTime->tm_mday, pTime->tm_mon + 1, pTime->tm_year - 100, pTime->tm_hour, pTime->tm_min, pTime->tm_sec);
+}
 
 int setSensorBusy(sensorRegister *sensor) {
   // printf("DATA_READY_MASK is %d\n", DATA_READY_MASK);
@@ -279,19 +291,19 @@ int setSensorCountdown(int *sensorCountdown, int userSensorCountdown) {
   }
 }
 
-int checkMallocSensorList(sensorRegister *mallocSensorList, int *sensorListCapacity, int numCreatedSensors) {
+int checkMallocSensorList(sensorRegister **mallocSensorList, int *sensorListCapacity, int numCreatedSensors) {
   if (numCreatedSensors >= *sensorListCapacity) {
     *sensorListCapacity *= 2;
-    mallocSensorList = (sensorRegister *)realloc(mallocSensorList, *sensorListCapacity * sizeof(sensorRegister));
-    if (mallocSensorList == NULL) {
+    *mallocSensorList = realloc(*mallocSensorList, *sensorListCapacity * sizeof(sensorRegister));
+    if (*mallocSensorList == NULL) {
       printf("\nError occurred!\nMemory reallocation failed!\n");
       return 1;
     }
   }
   else if (numCreatedSensors < *sensorListCapacity / 2 && numCreatedSensors >= 2) {
     *sensorListCapacity /= 2;
-    mallocSensorList = (sensorRegister *)realloc(mallocSensorList, *sensorListCapacity * sizeof(sensorRegister));
-    if (mallocSensorList == NULL) {
+    *mallocSensorList = realloc(*mallocSensorList, *sensorListCapacity * sizeof(sensorRegister));
+    if (*mallocSensorList == NULL) {
       printf("\nError occurred!\nMemory reallocation failed!\n");
       return 1;
     }
@@ -349,7 +361,7 @@ void shell(sensorRegister *sensorList, int sensorListCapacity, int *numCreatedSe
 
         if (strcmp(userChoiceSensorList, "create") == 0) {
           createSensor(sensorList, numCreatedSensors);
-          checkMallocSensorList(sensorList, &sensorListCapacity, *numCreatedSensors);
+          checkMallocSensorList(&sensorList, &sensorListCapacity, *numCreatedSensors);
         }
         if (strcmp(userChoiceSensorList, "remove") == 0) {
           uint8_t userSensorID = 0;
@@ -361,7 +373,7 @@ void shell(sensorRegister *sensorList, int sensorListCapacity, int *numCreatedSe
           while (getchar() != '\n');
 
           removeSensor(sensorList, numCreatedSensors, userSensorID);
-          checkMallocSensorList(sensorList, &sensorListCapacity, *numCreatedSensors);
+          checkMallocSensorList(&sensorList, &sensorListCapacity, *numCreatedSensors);
         }
         if (strcmp(userChoiceSensorList, "power") == 0) {
           int userSensorID = 0;
@@ -469,9 +481,14 @@ void shell(sensorRegister *sensorList, int sensorListCapacity, int *numCreatedSe
 }
 
 
+
 int main() {
   // random based on time
   srand(time(NULL));
+
+  char stringBuffer[50];
+  getTime(stringBuffer, sizeof(stringBuffer));
+  printf("%s\n", stringBuffer);
 
   int sensorListCapacity = 2;
   int numCreatedSensors = 0;
@@ -488,7 +505,7 @@ int main() {
   {
     numCreatedSensors++;
 
-    checkMallocSensorList(mallocSensorList, &sensorListCapacity, numCreatedSensors);
+    checkMallocSensorList(&mallocSensorList, &sensorListCapacity, numCreatedSensors);
 
     mallocSensorList[i].sensorID = i;
     mallocSensorList[i].sensorReadDelay = 5;
