@@ -279,7 +279,28 @@ int setSensorCountdown(int *sensorCountdown, int userSensorCountdown) {
   }
 }
 
-void shell(sensorRegister *sensorList, int *numCreatedSensors, int *sensorCountdown) {
+int checkMallocSensorList(sensorRegister *mallocSensorList, int *sensorListCapacity, int numCreatedSensors) {
+  if (numCreatedSensors >= *sensorListCapacity) {
+    *sensorListCapacity *= 2;
+    mallocSensorList = (sensorRegister *)realloc(mallocSensorList, *sensorListCapacity * sizeof(sensorRegister));
+    if (mallocSensorList == NULL) {
+      printf("\nError occurred!\nMemory reallocation failed!\n");
+      return 1;
+    }
+  }
+  else if (numCreatedSensors < *sensorListCapacity / 2 && numCreatedSensors >= 2) {
+    *sensorListCapacity /= 2;
+    mallocSensorList = (sensorRegister *)realloc(mallocSensorList, *sensorListCapacity * sizeof(sensorRegister));
+    if (mallocSensorList == NULL) {
+      printf("\nError occurred!\nMemory reallocation failed!\n");
+      return 1;
+    }
+  }
+
+  printf("\nmallocSensorList size is now %d!\n", *sensorListCapacity);
+}
+
+void shell(sensorRegister *sensorList, int sensorListCapacity, int *numCreatedSensors, int *sensorCountdown) {
   char userChoice[13] = "\0";
 
   do
@@ -328,6 +349,7 @@ void shell(sensorRegister *sensorList, int *numCreatedSensors, int *sensorCountd
 
         if (strcmp(userChoiceSensorList, "create") == 0) {
           createSensor(sensorList, numCreatedSensors);
+          checkMallocSensorList(sensorList, &sensorListCapacity, *numCreatedSensors);
         }
         if (strcmp(userChoiceSensorList, "remove") == 0) {
           uint8_t userSensorID = 0;
@@ -339,6 +361,7 @@ void shell(sensorRegister *sensorList, int *numCreatedSensors, int *sensorCountd
           while (getchar() != '\n');
 
           removeSensor(sensorList, numCreatedSensors, userSensorID);
+          checkMallocSensorList(sensorList, &sensorListCapacity, *numCreatedSensors);
         }
         if (strcmp(userChoiceSensorList, "power") == 0) {
           int userSensorID = 0;
@@ -444,73 +467,17 @@ void shell(sensorRegister *sensorList, int *numCreatedSensors, int *sensorCountd
     }
   } while (!(strcmp(userChoice, "exit") == 0));
 }
-void tempFunction02(void) {
+
+
+int main() {
   // random based on time
   srand(time(NULL));
 
-  sensorRegister sensorList[NUM_SENSORS] = { 0 };
-  int numCreatedSensors = 2;
-  int sensorCountdown = 30; // default value is 30 seconds
-
-  // if (numCreatedSensors > 0) {
-  //   startCountdownTakeReadings(sensorList);
-  // }
-  // else {
-  //   printf("No sensors detected!\nCountdown did not start!\n");
-  // }
-
-
-  sensorList[0].sensorID = 0;
-  sensorList[0].sensorReadDelay = 3;
-
-  sensorList[1].sensorID = 1;
-  sensorList[1].sensorReadDelay = 4;
-
-  // sensorList[2].sensorID = 2;
-  // sensorList[2].sensorReadDelay = 5;
-
-  // sensorList[3].sensorID = 3;
-  // sensorList[3].sensorReadDelay = 6;
-
-  // test sensor1
-  initializeSensor(&sensorList[1]);
-  logOnOffSensor(sensorList, &numCreatedSensors, STATUS_OFF, 0);
-  powerOnOffSensor(sensorList, &numCreatedSensors, STATUS_OFF, 0);
-  // test sensor3
-  initializeSensor(&sensorList[3]);
-  logOnOffSensor(sensorList, &numCreatedSensors, STATUS_ON, 1);
-  powerOnOffSensor(sensorList, &numCreatedSensors, STATUS_ON, 1);
-
-  shell(sensorList, &numCreatedSensors, &sensorCountdown);
-}
-
-int checkMallocSensorList(sensorRegister *mallocSensorList, int *sensorListCapacity, int numCreatedSensors) {
-  if (numCreatedSensors >= *sensorListCapacity) {
-    *sensorListCapacity *= 2;
-    mallocSensorList = (sensorRegister *)realloc(mallocSensorList, *sensorListCapacity * sizeof(sensorRegister));
-    if (mallocSensorList == NULL) {
-      printf("\nError occurred!\nMemory reallocation failed!\n");
-      return 1;
-    }
-  }
-  else if (numCreatedSensors < *sensorListCapacity / 2 && numCreatedSensors >= 2) {
-    *sensorListCapacity /= 2;
-    mallocSensorList = (sensorRegister *)realloc(mallocSensorList, *sensorListCapacity * sizeof(sensorRegister));
-    if (mallocSensorList == NULL) {
-      printf("\nError occurred!\nMemory reallocation failed!\n");
-      return 1;
-    }
-  }
-
-  printf("\nmallocSensorList size is now %d!\n", *sensorListCapacity);
-}
-
-int main() {
   int sensorListCapacity = 2;
   int numCreatedSensors = 0;
+  int sensorCountdown = 30; // default value is 30 seconds
 
   sensorRegister *mallocSensorList = (sensorRegister *)malloc(sizeof(sensorRegister) * sensorListCapacity);
-
   // checking if failed or pass
   if (mallocSensorList == NULL) {
     printf("\nError occurred!\nMemory allocation failed!\n");
@@ -526,15 +493,12 @@ int main() {
     mallocSensorList[i].sensorID = i;
     mallocSensorList[i].sensorReadDelay = 5;
 
-
     initializeSensor(&mallocSensorList[i]);
     logOnOffSensor(mallocSensorList, &numCreatedSensors, STATUS_ON, i);
     powerOnOffSensor(mallocSensorList, &numCreatedSensors, STATUS_ON, i);
   }
 
-  printAllSensorStatuses(mallocSensorList, numCreatedSensors);
-
-
+  shell(mallocSensorList, sensorListCapacity, &numCreatedSensors, &sensorCountdown);
 
 
   return 0;
