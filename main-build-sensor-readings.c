@@ -141,11 +141,11 @@ void printAllSensorStatuses(sensorRegister *sensorList, int numCreatedSensors) {
   }
 
 }
-int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors) {
+int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors, int sensorCountdown) {
   int numPoweredOnSensors = 0;
 
   // check how many sensors are on
-  for (int i = 0; i < NUM_SENSORS; i++)
+  for (int i = 0; i < numCreatedSensors; i++)
   {
     if (sensorList[i].sensorStatus & POWER_ON_MASK) {
       numPoweredOnSensors++;
@@ -155,7 +155,7 @@ int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors
   printf("\nThere are currently %d powered on sensors!\n", numPoweredOnSensors);
 
   clock_t start = clock();
-  uint8_t countdown = 25; // 25 seconds
+  uint8_t countdown = sensorCountdown; // 25 seconds
   clock_t lastCountdownUpdate = start;
 
 
@@ -165,7 +165,7 @@ int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors
     clock_t elapsed = now - start;
 
 
-    for (int i = 0; i < NUM_SENSORS; i++)
+    for (int i = 0; i < numCreatedSensors; i++)
     {
       if ((sensorList[i].sensorStatus & POWER_ON_MASK) && (!(sensorList[i].sensorStatus & BUSY_MASK))) {
         setSensorBusy(&sensorList[i]);
@@ -190,7 +190,7 @@ int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors
     // update last countdown update
     if (elapsed - lastCountdownUpdate >= 1 * CLOCKS_PER_SEC) {
       countdown--;
-      for (int i = 0; i < NUM_SENSORS; i++)
+      for (int i = 0; i < numCreatedSensors; i++)
       {
         if (sensorList[i].sensorStatus & POWER_ON_MASK) {
           sensorList[i].elapsedSinceLastRead++;
@@ -201,7 +201,7 @@ int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors
       lastCountdownUpdate = elapsed;
     }
     if (countdown <= 0) {
-      for (int i = 0; i < NUM_SENSORS; i++)
+      for (int i = 0; i < numCreatedSensors; i++)
       {
         if (sensorList[i].sensorStatus & POWER_ON_MASK) {
           powerOnOffSensor(sensorList, &numCreatedSensors, STATUS_OFF, sensorList[i].sensorID);
@@ -444,72 +444,13 @@ void shell(sensorRegister *sensorList, int *numCreatedSensors, int *sensorCountd
         }
         if (strcmp(userChoiceSensorRead, "start") == 0) {
           printf("** COUNTDOWN STARTED **\n");
-
+          startCountdownTakeReadings(sensorList, *numCreatedSensors, *sensorCountdown);
         }
       }
 
     }
   } while (!(strcmp(userChoice, "exit") == 0));
 }
-
-void tempFunction() {
-  char userChoice[13] = "\0";
-
-  do
-  {
-    // title
-    printf("\n*** EMBEDDED SENSOR DATA LOGGER SIMULATOR ***\n");
-    // commands
-    printf("Available commands:\n");
-    printf("  sensor_list   -     List connected sensors\n");
-    printf("  sensor_read   -     Read value from sensors\n");
-    printf("  exit          -     Exit the program\n");
-    // user input for userChoice
-    printf("Enter a command: ");
-    fgets(userChoice, sizeof(userChoice), stdin);
-    userChoice[strlen(userChoice) - 1] = '\0';
-    // converts userChoice to all lowercase if contains any uppercase
-    for (int i = 0; i < strlen(userChoice); i++)
-    {
-      userChoice[i] = tolower(userChoice[i]);
-    }
-
-    if (userChoice == "sensor_list") {
-      printf("\n** SENSOR LIST **\n");
-      // admin commands
-      printf("  create        -     Creates a new sensor with random ID (max 4 sensors)\n");
-      printf("  remove        -     Deletes a sensor according to ID");
-      printf("  power         -     Choose which sensor to power on or off\n");
-      printf("  log           -     Set which sensors will log their readings into a file\n");
-      // list of sensors e.g.
-      printf("-\n");
-
-      printf("  sensor ID 003 -     Read Delay: 5 seconds, Powered: Off, Log:  On");
-      printf("  sensor ID 245 -     Read Delay: 3 seconds, Powered:  On, Log: Off");
-
-      printf("-\n");
-      printf("  previous      -     Go to the main menu\n");
-    }
-    if (userChoice == "sensor_read") {
-      printf("\n** SENSOR READ **\n");
-      printf("  countdown     -     Sets how long the sensors will take readings for (max 255 seconds)\n");
-      printf("  start         -     starts the countdown and sensor begin taking readings\n");
-      // list of sensors e.g.
-      printf("-\n");
-
-      printf("  sensor ID 3   -     Read Delay: 5 seconds, Powered: Off, Log:  On");
-      printf("  sensor ID 245 -     Read Delay: 3 seconds, Powered:  On, Log: Off");
-
-      printf("-\n");
-      printf("  previous      -     Go to the main menu\n");
-    }
-
-
-  } while (userChoice != "exit");
-
-}
-
-
 
 int main() {
   // random based on time
