@@ -2,6 +2,7 @@
 #include <time.h>
 #include <Windows.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 // bitwise masks
 #define POWER_ON_MASK     ((uint8_t)(1U<<0))  // 00 00 00 01 (1)
@@ -52,7 +53,6 @@ int setSensorDataReady(sensorRegister *sensor) {
 
   return E_SUCCESS;
 }
-
 int getIndexSensor(sensorRegister *sensorList, int numCreatedSensors, int userSensorID) {
   int sensorIndex = -1;
   // printf("The number of numCreatedSensors received in getIndexSensor is %d!\n", numCreatedSensors);
@@ -76,7 +76,6 @@ int getIndexSensor(sensorRegister *sensorList, int numCreatedSensors, int userSe
 
   return sensorIndex;
 }
-
 int powerOnOffSensor(sensorRegister *sensorList, int *numCreatedSensors, int onOrOff, int userSensorID) {
   int sensorIndex = 0;
   sensorIndex = getIndexSensor(sensorList, *numCreatedSensors, userSensorID);
@@ -218,7 +217,6 @@ int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors
 
   return E_SUCCESS;
 }
-
 int createSensor(sensorRegister *sensorList, int *numCreatedSensors) {
   uint8_t randomID = (rand() % 255) + 1;
   uint8_t checkIDCount = 1; // how many times the program should check between new ID and other IDs
@@ -244,9 +242,6 @@ int createSensor(sensorRegister *sensorList, int *numCreatedSensors) {
 
   return E_SUCCESS;
 }
-
-
-
 int removeSensor(sensorRegister *sensorList, int *numCreatedSensors, int userSensorID) {
   int sensorIndex = 0;
   sensorIndex = getIndexSensor(sensorList, *numCreatedSensors, userSensorID);
@@ -261,7 +256,6 @@ int removeSensor(sensorRegister *sensorList, int *numCreatedSensors, int userSen
 
   return E_SUCCESS;
 }
-
 int setSensorReadDelay(sensorRegister *sensorList, int *numCreatedSensors, int userReadDelay, int userSensorID) {
   int sensorIndex = 0;
   sensorIndex = getIndexSensor(sensorList, *numCreatedSensors, userSensorID);
@@ -274,7 +268,6 @@ int setSensorReadDelay(sensorRegister *sensorList, int *numCreatedSensors, int u
     return E_INVALID_PARAM;
   }
 }
-
 int setSensorCountdown(int *sensorCountdown, int userSensorCountdown) {
   // max 255 seconds
   if (userSensorCountdown <= 255 && userSensorCountdown >= 1) {
@@ -451,8 +444,7 @@ void shell(sensorRegister *sensorList, int *numCreatedSensors, int *sensorCountd
     }
   } while (!(strcmp(userChoice, "exit") == 0));
 }
-
-int main() {
+void tempFunction02(void) {
   // random based on time
   srand(time(NULL));
 
@@ -466,6 +458,7 @@ int main() {
   // else {
   //   printf("No sensors detected!\nCountdown did not start!\n");
   // }
+
 
   sensorList[0].sensorID = 0;
   sensorList[0].sensorReadDelay = 3;
@@ -489,6 +482,59 @@ int main() {
   powerOnOffSensor(sensorList, &numCreatedSensors, STATUS_ON, 1);
 
   shell(sensorList, &numCreatedSensors, &sensorCountdown);
+}
+
+int checkMallocSensorList(sensorRegister *mallocSensorList, int *sensorListCapacity, int numCreatedSensors) {
+  if (numCreatedSensors >= *sensorListCapacity) {
+    *sensorListCapacity *= 2;
+    mallocSensorList = (sensorRegister *)realloc(mallocSensorList, *sensorListCapacity * sizeof(sensorRegister));
+    if (mallocSensorList == NULL) {
+      printf("\nError occurred!\nMemory reallocation failed!\n");
+      return 1;
+    }
+  }
+  else if (numCreatedSensors < *sensorListCapacity / 2 && numCreatedSensors >= 2) {
+    *sensorListCapacity /= 2;
+    mallocSensorList = (sensorRegister *)realloc(mallocSensorList, *sensorListCapacity * sizeof(sensorRegister));
+    if (mallocSensorList == NULL) {
+      printf("\nError occurred!\nMemory reallocation failed!\n");
+      return 1;
+    }
+  }
+
+  printf("\nmallocSensorList size is now %d!\n", *sensorListCapacity);
+}
+
+int main() {
+  int sensorListCapacity = 2;
+  int numCreatedSensors = 0;
+
+  sensorRegister *mallocSensorList = (sensorRegister *)malloc(sizeof(sensorRegister) * sensorListCapacity);
+
+  // checking if failed or pass
+  if (mallocSensorList == NULL) {
+    printf("\nError occurred!\nMemory allocation failed!\n");
+    return 1;
+  }
+
+  for (int i = 0; i < 8; i++)
+  {
+    numCreatedSensors++;
+
+    checkMallocSensorList(mallocSensorList, &sensorListCapacity, numCreatedSensors);
+
+    mallocSensorList[i].sensorID = i;
+    mallocSensorList[i].sensorReadDelay = 5;
+
+
+    initializeSensor(&mallocSensorList[i]);
+    logOnOffSensor(mallocSensorList, &numCreatedSensors, STATUS_ON, i);
+    powerOnOffSensor(mallocSensorList, &numCreatedSensors, STATUS_ON, i);
+  }
+
+  printAllSensorStatuses(mallocSensorList, numCreatedSensors);
+
+
 
 
   return 0;
