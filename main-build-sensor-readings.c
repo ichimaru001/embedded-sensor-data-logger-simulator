@@ -52,30 +52,61 @@ int setSensorDataReady(sensorRegister *sensor) {
 
   return E_SUCCESS;
 }
-int powerOnOffSensor(sensorRegister *sensor, uint8_t onOrOff) {
+
+int getIndexSensor(sensorRegister *sensorList, int numCreatedSensors, int userSensorID) {
+  int sensorIndex = -1;
+  // printf("The number of numCreatedSensors received in getIndexSensor is %d!\n", numCreatedSensors);
+  // printf("\nI have received this many elements within the sensorList array: %d\n", sizeof(sensorList) / sizeof(sensorList[0]));
+  for (int i = 0; i < numCreatedSensors; i++)
+  {
+    // printf("Have gone through sensor with ID %d\n", sensorList[i].sensorID);
+    if (sensorList[i].sensorID == userSensorID) {
+      sensorIndex = i;
+      printf("userSensorID received is %d!\n", userSensorID);
+      // break;
+    }
+  }
+
+  printf("\nSensor index is %d!\n", sensorIndex);
+
+  if (sensorIndex == -1) { // if userSensorID is invalid (cannot be found)
+    printf("\nError occurred!\nInvalid Sensor!\n");
+    return E_INVALID_SENSOR;
+  }
+
+  return sensorIndex;
+}
+
+int powerOnOffSensor(sensorRegister *sensorList, int *numCreatedSensors, int onOrOff, int userSensorID) {
+  int sensorIndex = 0;
+  sensorIndex = getIndexSensor(sensorList, *numCreatedSensors, userSensorID);
+
+  printf("This is the index received from sensorIndex in powerOnOffSensor: %d\n", sensorIndex);
+
   if (onOrOff == STATUS_ON) {
-    sensor->sensorStatus |= POWER_ON_MASK;
-    printf("Sensor with ID %d is powered on!\n", sensor->sensorID);
+    sensorList[sensorIndex].sensorStatus |= POWER_ON_MASK;
+    printf("Sensor with ID %d is powered on!\n", sensorList[sensorIndex].sensorID);
     return E_SUCCESS;
   }
   else if (onOrOff == STATUS_OFF) {
-    sensor->sensorStatus &= ~POWER_ON_MASK;
-    printf("Sensor with ID %d is powered off!\n", sensor->sensorID);
+    sensorList[sensorIndex].sensorStatus &= ~POWER_ON_MASK;
+    printf("Sensor with ID %d is powered off!\n", sensorList[sensorIndex].sensorID);
     return E_SUCCESS;
   }
   else {
-    printf("\nError has occurred in sensor with ID %d!\n", sensor->sensorID);
-    sensor->sensorStatus |= ERROR_MASK;
+    printf("\nError has occurred in sensor with ID %d!\n", sensorList[sensorIndex].sensorID);
+    sensorList[sensorIndex].sensorStatus |= ERROR_MASK;
     return E_INVALID_PARAM;
   }
 }
+
 int initializeSensor(sensorRegister *sensor) {
   sensor->sensorStatus = 0;
   printf("Sensor with ID %d has been initialized!\n", sensor->sensorID);
 
   return E_SUCCESS;
 }
-int logOnOffSensor(sensorRegister *sensor, uint8_t onOrOff) {
+int logOnOffSensor(sensorRegister *sensor, int onOrOff) {
   if (onOrOff == STATUS_ON) {
     sensor->sensorStatus |= LOG_MASK;
     printf("Sensor with ID %d has log on!\n", sensor->sensorID);
@@ -108,8 +139,8 @@ void printAllSensorStatuses(sensorRegister *sensorList, int numCreatedSensors) {
   }
 
 }
-int startCountdownTakeReadings(sensorRegister *sensorList) {
-  uint8_t numPoweredOnSensors = 0;
+int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors) {
+  int numPoweredOnSensors = 0;
 
   // check how many sensors are on
   for (int i = 0; i < NUM_SENSORS; i++)
@@ -171,7 +202,7 @@ int startCountdownTakeReadings(sensorRegister *sensorList) {
       for (int i = 0; i < NUM_SENSORS; i++)
       {
         if (sensorList[i].sensorStatus & POWER_ON_MASK) {
-          powerOnOffSensor(&sensorList[i], STATUS_OFF);
+          powerOnOffSensor(sensorList, &numCreatedSensors, STATUS_OFF, sensorList[i].sensorID);
           initializeSensor(&sensorList[i]);
         }
       }
@@ -211,18 +242,12 @@ int createSensor(sensorRegister *sensorList, int *numCreatedSensors) {
 
   return E_SUCCESS;
 }
+
+
+
 int removeSensor(sensorRegister *sensorList, int *numCreatedSensors, int userSensorID) {
   int sensorIndex = 0;
-  for (int i = 0; i < *numCreatedSensors; i++)
-  {
-    if (sensorList[i].sensorID == userSensorID) {
-      sensorIndex = i;
-    }
-  }
-
-  if (sensorIndex == 0 && userSensorID != 0) { // if userSensorID is invalid (cannot be found)
-    return E_INVALID_SENSOR;
-  }
+  sensorIndex = getIndexSensor(sensorList, *numCreatedSensors, userSensorID);
 
   for (int i = sensorIndex; i < *numCreatedSensors; i++)
   {
@@ -235,7 +260,9 @@ int removeSensor(sensorRegister *sensorList, int *numCreatedSensors, int userSen
   return E_SUCCESS;
 }
 
-void shell(sensorRegister *sensorList, int numCreatedSensors) {
+
+
+void shell(sensorRegister *sensorList, int *numCreatedSensors) {
   char userChoice[13] = "\0";
 
   do
@@ -268,14 +295,14 @@ void shell(sensorRegister *sensorList, int numCreatedSensors) {
         printf("\n** SENSOR LIST **\n");
         // admin commands
         printf("  create        -     Creates a new sensor with random ID (max 4 sensors)\n");
-        printf("  remove        -     Deletes a sensor according to ID");
+        printf("  remove        -     Deletes a sensor according to ID\n");
         printf("  power         -     Choose which sensor to power on or off\n");
         printf("  log           -     Set which sensors will log their readings into a file\n");
         printf("  delay         -     Set the read delay of a sensor (in seconds)\n");
         // list of sensors e.g.
         printf("  ---\n");
-        printf("  Total:              %d\n", numCreatedSensors);
-        printAllSensorStatuses(sensorList, numCreatedSensors);
+        printf("  Total:              %d\n", *numCreatedSensors);
+        printAllSensorStatuses(sensorList, *numCreatedSensors);
         printf("  ---\n");
         printf("  previous      -     Go to the main menu\n");
 
@@ -284,7 +311,7 @@ void shell(sensorRegister *sensorList, int numCreatedSensors) {
         userChoiceSensorList[strlen(userChoiceSensorList) - 1] = '\0';
 
         if (strcmp(userChoiceSensorList, "create") == 0) {
-          createSensor(sensorList, &numCreatedSensors);
+          createSensor(sensorList, numCreatedSensors);
         }
         if (strcmp(userChoiceSensorList, "remove") == 0) {
           uint8_t userSensorID = 0;
@@ -292,16 +319,37 @@ void shell(sensorRegister *sensorList, int numCreatedSensors) {
           printf("Enter the ID of the sensor: ");
           scanf(" %d", &userSensorID);
 
-          removeSensor(sensorList, &numCreatedSensors, userSensorID);
+          // clears the input buffer
+          while (getchar() != '\n');
+
+          removeSensor(sensorList, numCreatedSensors, userSensorID);
+        }
+        if (strcmp(userChoiceSensorList, "power") == 0) {
+          int userSensorID = 0;
+          int userPowerOnOff = 0;
+
+          printf("** POWERING A SENSOR **\n");
+          printf("Enter the ID of the sensor: ");
+          scanf(" %d", &userSensorID);
+
+          printf("Obtained userSensorID of %d in power!\n", userSensorID);
+
+          // clears the input buffer
+          while (getchar() != '\n');
+
+          printf("Type 1 for power on and 0 for power off: ");
+          scanf(" %d", &userPowerOnOff);
+
+          // clears the input buffer
+          while (getchar() != '\n');
+
+          printf("Obtained userSensorID of %d in power!\n", userSensorID);
+
+          powerOnOffSensor(sensorList, numCreatedSensors, userPowerOnOff, userSensorID);
         }
       }
-
-
     }
-
   } while (!(strcmp(userChoice, "exit") == 0));
-
-
 }
 
 void tempFunction() {
@@ -360,7 +408,23 @@ void tempFunction() {
   } while (userChoice != "exit");
 
 }
-void tempFunction2(sensorRegister *sensorList) {
+
+
+
+int main() {
+  // random based on time
+  srand(time(NULL));
+
+  sensorRegister sensorList[NUM_SENSORS] = { 0 };
+  int numCreatedSensors = 2;
+
+  // if (numCreatedSensors > 0) {
+  //   startCountdownTakeReadings(sensorList);
+  // }
+  // else {
+  //   printf("No sensors detected!\nCountdown did not start!\n");
+  // }
+
   sensorList[0].sensorID = 0;
   sensorList[0].sensorReadDelay = 3;
 
@@ -376,38 +440,13 @@ void tempFunction2(sensorRegister *sensorList) {
   // test sensor1
   initializeSensor(&sensorList[1]);
   logOnOffSensor(&sensorList[1], STATUS_ON);
-  powerOnOffSensor(&sensorList[1], STATUS_ON);
+  powerOnOffSensor(sensorList, &numCreatedSensors, STATUS_OFF, 0);
   // test sensor3
   initializeSensor(&sensorList[3]);
   logOnOffSensor(&sensorList[3], STATUS_ON);
-  powerOnOffSensor(&sensorList[3], STATUS_ON);
-}
+  powerOnOffSensor(sensorList, &numCreatedSensors, STATUS_ON, 1);
 
-
-int main() {
-  // random based on time
-  srand(time(NULL));
-
-
-  sensorRegister sensorList[NUM_SENSORS] = { 0 };
-  uint8_t numCreatedSensors = 2;
-
-
-
-
-  // if (numCreatedSensors > 0) {
-  //   startCountdownTakeReadings(sensorList);
-  // }
-  // else {
-  //   printf("No sensors detected!\nCountdown did not start!\n");
-  // }
-
-
-  tempFunction2(sensorList);
-  shell(sensorList, numCreatedSensors);
-
-
-
+  shell(sensorList, &numCreatedSensors);
 
 
   return 0;
