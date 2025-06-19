@@ -163,7 +163,7 @@ void printAllSensorStatuses(sensorRegister *sensorList, int numCreatedSensors) {
 
 }
 
-int startSensorLogFile(char *fileName) {
+int startSensorLogFileTxt(char *fileName) {
   // get file name
   char suffixTime[50];
   char prefixFileName[50] = "sensor_log_file-"; // will be the final file name
@@ -196,7 +196,7 @@ int startSensorLogFile(char *fileName) {
 
   strcpy(fileName, finalFileName);
 }
-int writeSensorLogFile(char *log, char *fileName) { // (char *log)
+int writeSensorLogFileTxt(char *log, char *fileName) { // (char *log)
   FILE *fptr = fopen(fileName, "a");
 
   if (fptr == NULL) {
@@ -209,7 +209,59 @@ int writeSensorLogFile(char *log, char *fileName) { // (char *log)
   fclose(fptr);
 }
 
-int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors, int sensorCountdown) {
+int startSensorLogFileBin(char *fileName) {
+  // get file name
+  char suffixTime[50];
+  char prefixFileName[50] = "sensor_log_file-"; // will be the final file name
+  // get time
+  getTime(suffixTime, sizeof(suffixTime));
+  // replace [space] with '_'
+  replaceChar(suffixTime, ' ', '_');
+  replaceChar(suffixTime, ':', '-');
+  replaceChar(suffixTime, '/', '-');
+
+  // connect "sensor_log_file-" with timestamp
+  strcat(prefixFileName, suffixTime);
+  // connect result above with ".txt"
+  strcat(prefixFileName, ".bin");
+  // printf("%s\n", prefixFileName);
+
+  char finalFileName[70] = "./sensor_logs/";
+  strcat(finalFileName, prefixFileName);
+
+  // finalFileName[strlen(finalFileName) - 1] = '\0';
+
+  FILE *fptr = fopen(finalFileName, "wb");
+
+  if (fptr == NULL) {
+    printf("\nError occurred!\nThe file is not opened!\n");
+    return E_FILE_ERROR;
+  }
+
+  fclose(fptr);
+
+  strcpy(fileName, finalFileName);
+}
+int writeSensorLogFileBin(sensorRegister *sensorRegisterStruct, char *fileName) { // (char *log)
+  FILE *fptr = fopen(fileName, "ab");
+
+  if (fptr == NULL) {
+    printf("\nError occurred!\nThe file is not opened!\n");
+    return E_FILE_ERROR;
+  }
+
+  // only writes the sensorRegister within sensor and does not include timestamp
+  size_t num_written_sensorRegister = fwrite(sensorRegisterStruct, sizeof(sensorRegister), 1, fptr);
+  if (num_written_sensorRegister != 1) {
+    printf("\nError occurred!\nError writing to file!\n");
+    fclose(fptr);
+    return E_FILE_ERROR;
+  }
+
+  fclose(fptr);
+}
+
+int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors, int sensorCountdown, int binaryLogMode) {
   int numPoweredOnSensors = 0;
 
   for (int i = 0; i < numCreatedSensors; i++)
@@ -229,8 +281,18 @@ int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors
   clock_t lastCountdownUpdate = start;
 
   char logFileName[70];
-  // create file and get file name
-  startSensorLogFile(logFileName);
+  if (binaryLogMode == STATUS_OFF) {
+    // create .txt file and get file name
+    startSensorLogFileTxt(logFileName);
+  }
+  else if (binaryLogMode == STATUS_ON) {
+    // create .bin file and get file name
+    startSensorLogFileBin(logFileName);
+  }
+  else {
+    printf("\nError occurred!\nBinary log mode is neither 1 or 0 in startCountdownTakeReadings function!\n");
+    return E_FILE_ERROR;
+  }
 
   while (1) // when sensor is powered on
   {
@@ -270,7 +332,19 @@ int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors
           // write log to file
           char logLine[65];
           snprintf(logLine, sizeof(logLine), "%s | Sensor ID: %3d | Value: %3d | Status: OK\n", timeString, sensorList[i].sensorID, sensorList[i].sensorValue);
-          writeSensorLogFile(logLine, logFileName);
+          if (binaryLogMode == STATUS_OFF) {
+            // append to .txt file
+            writeSensorLogFileTxt(logLine, logFileName);
+          }
+          else if (binaryLogMode == STATUS_ON) {
+            // append to .bin file
+            // MUST BE CHECKED
+            writeSensorLogFileBin(&sensorList[i], logFileName);
+          }
+          else {
+            printf("\nError occurred!\nBinary log mode is neither 1 or 0 in startCountdownTakeReadings function!\n");
+            return E_FILE_ERROR;
+          }
         }
 
         // resets elapsed since last read for each sensor to 0
@@ -394,7 +468,7 @@ int checkMallocSensorList(sensorRegister **mallocSensorList, int *sensorListCapa
 
 
 
-void shell(sensorRegister *sensorList, int sensorListCapacity, int *numCreatedSensors, int *sensorCountdown) {
+void shell(sensorRegister *sensorList, int sensorListCapacity, int *numCreatedSensors, int *sensorCountdown, int *binaryLogMode) {
   char userChoice[13] = "\0";
 
   do
@@ -527,13 +601,15 @@ void shell(sensorRegister *sensorList, int sensorListCapacity, int *numCreatedSe
         printf("\n** SENSOR READ **\n");
         // admin commands
         printf("  countdown     -     Sets how long the sensors will take readings for (max 255 seconds)\n");
-        printf("  start         -     starts the countdown and sensor begin taking readings\n");
+        printf("  start         -     Starts the countdown and sensor begin taking readings\n");
+        printf("  binary        -     Decides whether logs are written .bin file or .txt file\n");
         // list of sensors e.g.
         printf("  ---\n");
-        printf("  Total:              %d\n", *numCreatedSensors);
+        printf("  Total:              %3d\n", *numCreatedSensors);
         printAllSensorStatuses(sensorList, *numCreatedSensors);
         printf("  ---\n");
-        printf("  Current countdown: %d seconds\n", *sensorCountdown);
+        printf("  Current countdown:  %3d seconds\n", *sensorCountdown);
+        printf("  Binary Mode:        %3s\n", *binaryLogMode ? "ON" : "OFF");
         printf("  ---\n");
         printf("  previous      -     Go to the main menu\n");
 
@@ -554,7 +630,21 @@ void shell(sensorRegister *sensorList, int sensorListCapacity, int *numCreatedSe
         }
         if (strcmp(userChoiceSensorRead, "start") == 0) {
           printf("** COUNTDOWN STARTED **\n");
-          startCountdownTakeReadings(sensorList, *numCreatedSensors, *sensorCountdown);
+          startCountdownTakeReadings(sensorList, *numCreatedSensors, *sensorCountdown, *binaryLogMode);
+        }
+        if (strcmp(userChoiceSensorRead, "binary") == 0) {
+          int userBinaryMode = -1;
+          printf("** SETTING LOGGING MODE **\n");
+          while (!(userBinaryMode == 1 || userBinaryMode == 0))
+          {
+            printf("Type 1 for binary mode on and 0 for binary mode off: ");
+            scanf(" %d", &userBinaryMode);
+          }
+
+          // clears the input buffer
+          while (getchar() != '\n');
+
+          *binaryLogMode = userBinaryMode;
         }
       }
 
@@ -568,20 +658,10 @@ int main() {
   // random based on time
   srand(time(NULL));
 
-  char stringBuffer[20];
-  getTime(stringBuffer, sizeof(stringBuffer));
-  // replaceChar(stringBuffer, ' ', '_');
-  printf("%s\n", stringBuffer);
-
-  // char logLine[65];
-  // snprintf(logLine, sizeof(logLine), "%s | Sensor ID: %3d | Value: %3d | Status: OK", stringBuffer, 3, 144);
-  // writeSensorLogFile(logLine);
-
-  // writeSensorLogFile();
-
   int sensorListCapacity = 2;
   int numCreatedSensors = 0;
   int sensorCountdown = 30; // default value is 30 seconds
+  int binaryLogMode = STATUS_OFF;
 
   sensorRegister *mallocSensorList = (sensorRegister *)malloc(sizeof(sensorRegister) * sensorListCapacity);
   // checking if failed or pass
@@ -604,7 +684,7 @@ int main() {
     powerOnOffSensor(mallocSensorList, &numCreatedSensors, STATUS_ON, i);
   }
 
-  shell(mallocSensorList, sensorListCapacity, &numCreatedSensors, &sensorCountdown);
+  shell(mallocSensorList, sensorListCapacity, &numCreatedSensors, &sensorCountdown, &binaryLogMode);
 
 
   return 0;

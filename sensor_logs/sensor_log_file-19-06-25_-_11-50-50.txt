@@ -1,0 +1,80 @@
+19/06/25 - 11:51:09 | Sensor ID:   0 | Value: 204 | Status: OK
+
+19/06/25 - 11:51:09 | Sensor ID:   1 | Value:  24 | Status: OK
+
+19/06/25 - 11:51:09 | Sensor ID:   2 | Value: 169 | Status: OK
+
+19/06/25 - 11:51:09 | Sensor ID:   3 | Value: 176 | Status: OK
+
+19/06/25 - 11:51:09 | Sensor ID:   4 | Value: 226 | Status: OK
+
+19/06/25 - 11:51:09 | Sensor ID:   5 | Value: 191 | Status: OK
+
+19/06/25 - 11:51:09 | Sensor ID:   6 | Value: 173 | Status: OK
+
+19/06/25 - 11:51:09 | Sensor ID:   7 | Value: 236 | Status: OK
+
+19/06/25 - 11:51:14 | Sensor ID:   0 | Value: 141 | Status: OK
+
+19/06/25 - 11:51:14 | Sensor ID:   1 | Value: 248 | Status: OK
+
+19/06/25 - 11:51:14 | Sensor ID:   2 | Value: 220 | Status: OK
+
+19/06/25 - 11:51:14 | Sensor ID:   3 | Value: 199 | Status: OK
+
+19/06/25 - 11:51:14 | Sensor ID:   4 | Value: 229 | Status: OK
+
+19/06/25 - 11:51:14 | Sensor ID:   5 | Value:  95 | Status: OK
+
+19/06/25 - 11:51:14 | Sensor ID:   6 | Value: 228 | Status: OK
+
+19/06/25 - 11:51:14 | Sensor ID:   7 | Value: 115 | Status: OK
+
+19/06/25 - 11:51:19 | Sensor ID:   0 | Value:  94 | Status: OK
+
+19/06/25 - 11:51:19 | Sensor ID:   1 | Value:  64 | Status: OK
+
+19/06/25 - 11:51:19 | Sensor ID:   2 | Value: 173 | Status: OK
+
+19/06/25 - 11:51:19 | Sensor ID:   3 | Value: 114 | Status: OK
+
+19/06/25 - 11:51:19 | Sensor ID:   4 | Value: 245 | Status: OK
+
+19/06/25 - 11:51:19 | Sensor ID:   5 | Value:  75 | Status: OK
+
+19/06/25 - 11:51:19 | Sensor ID:   6 | Value: 228 | Status: OK
+
+19/06/25 - 11:51:19 | Sensor ID:   7 | Value: 207 | Status: OK
+
+19/06/25 - 11:51:24 | Sensor ID:   0 | Value:  30 | Status: OK
+
+19/06/25 - 11:51:24 | Sensor ID:   1 | Value: 175 | Status: OK
+
+19/06/25 - 11:51:24 | Sensor ID:   2 | Value: 177 | Status: OK
+
+19/06/25 - 11:51:24 | Sensor ID:   3 | Value:  65 | Status: OK
+
+19/06/25 - 11:51:24 | Sensor ID:   4 | Value: 233 | Status: OK
+
+19/06/25 - 11:51:24 | Sensor ID:   5 | Value: 230 | Status: OK
+
+19/06/25 - 11:51:24 | Sensor ID:   6 | Value: 219 | Status: OK
+
+19/06/25 - 11:51:24 | Sensor ID:   7 | Value: 148 | Status: OK
+
+19/06/25 - 11:51:29 | Sensor ID:   0 | Value:  74 | Status: OK
+
+19/06/25 - 11:51:29 | Sensor ID:   1 | Value: 189 | Status: OK
+
+19/06/25 - 11:51:29 | Sensor ID:   2 | Value:  65 | Status: OK
+
+19/06/25 - 11:51:29 | Sensor ID:   3 | Value:  18 | Status: OK
+
+19/06/25 - 11:51:29 | Sensor ID:   4 | Value:   5 | Status: OK
+
+19/06/25 - 11:51:29 | Sensor ID:   5 | Value:  92 | Status: OK
+
+19/06/25 - 11:51:29 | Sensor ID:   6 | Value:  95 | Status: OK
+
+19/06/25 - 11:51:29 | Sensor ID:   7 | Value:  47 | Status: OK
+
