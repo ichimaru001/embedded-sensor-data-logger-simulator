@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
 // bitwise masks
 #define POWER_ON_MASK     ((uint8_t)(1U<<0))  // 00 00 00 01 (1)
@@ -30,8 +31,17 @@ typedef struct {
   uint8_t sensorReadDelay; // 255 seconds max delay - 1 second increment
   uint8_t elapsedSinceLastRead; // 255 seconds max elapsed
   uint8_t sensorStatus;
+  uint8_t sensorValue; // max 255 value
 } sensorRegister;
 
+void replaceChar(char *string, char target, char replacement) {
+  for (int i = 0; i < strlen(string); i++)
+  {
+    if (string[i] == target) {
+      string[i] = replacement;
+    }
+  }
+}
 
 void getTime(char *stringBuffer, size_t bufferSize) {
   time_t rawtime = 0;
@@ -152,12 +162,61 @@ void printAllSensorStatuses(sensorRegister *sensorList, int numCreatedSensors) {
   }
 
 }
+
+int startSensorLogFile(char *fileName) {
+  // get file name
+  char suffixTime[50];
+  char prefixFileName[50] = "sensor_log_file-"; // will be the final file name
+  // get time
+  getTime(suffixTime, sizeof(suffixTime));
+  // replace [space] with '_'
+  replaceChar(suffixTime, ' ', '_');
+  replaceChar(suffixTime, ':', '-');
+  replaceChar(suffixTime, '/', '-');
+
+  // connect "sensor_log_file-" with timestamp
+  strcat(prefixFileName, suffixTime);
+  // connect result above with ".txt"
+  strcat(prefixFileName, ".txt");
+  // printf("%s\n", prefixFileName);
+
+  char finalFileName[70] = "./sensor_logs/";
+  strcat(finalFileName, prefixFileName);
+
+  // finalFileName[strlen(finalFileName) - 1] = '\0';
+
+  FILE *fptr = fopen(finalFileName, "w");
+
+  if (fptr == NULL) {
+    printf("\nError occurred!\nThe file is not opened!\n");
+    return E_FILE_ERROR;
+  }
+
+  fclose(fptr);
+
+  strcpy(fileName, finalFileName);
+}
+int writeSensorLogFile(char *log, char *fileName) { // (char *log)
+  FILE *fptr = fopen(fileName, "a");
+
+  if (fptr == NULL) {
+    printf("\nError occurred!\nThe file is not opened!\n");
+    return E_FILE_ERROR;
+  }
+
+  fprintf(fptr, "%s\n", log);
+
+  fclose(fptr);
+}
+
 int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors, int sensorCountdown) {
   int numPoweredOnSensors = 0;
 
-  // check how many sensors are on
   for (int i = 0; i < numCreatedSensors; i++)
   {
+    // initialize elapsed since last read for each sensor
+    sensorList[i].elapsedSinceLastRead = 0;
+    // check how many sensors are on
     if (sensorList[i].sensorStatus & POWER_ON_MASK) {
       numPoweredOnSensors++;
     }
@@ -169,11 +228,15 @@ int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors
   uint8_t countdown = sensorCountdown; // 25 seconds
   clock_t lastCountdownUpdate = start;
 
+  char logFileName[70];
+  // create file and get file name
+  startSensorLogFile(logFileName);
 
   while (1) // when sensor is powered on
   {
     clock_t now = clock();
     clock_t elapsed = now - start;
+
 
 
     for (int i = 0; i < numCreatedSensors; i++)
@@ -188,9 +251,26 @@ int startCountdownTakeReadings(sensorRegister *sensorList, int numCreatedSensors
         if (!(sensorList[i].sensorStatus & DATA_READY_MASK)) {
           setSensorDataReady(&sensorList[i]);
         }
+
+        // set sensor's value to random value
+        if (sensorList[i].sensorStatus & DATA_READY_MASK) {
+          int randomSensorValue = (rand() % 255) + 1;
+          sensorList[i].sensorValue = randomSensorValue;
+        }
+
         // prints if sensor is data ready
         if ((sensorList[i].sensorStatus & DATA_READY_MASK) && (sensorList[i].sensorStatus & LOG_MASK)) {
-          printf("Sensor with ID %d has been read: %d seconds\n", sensorList[i].sensorID, sensorList[i].elapsedSinceLastRead);
+          // printf("Sensor with ID %d has been read: %d seconds\n", sensorList[i].sensorID, sensorList[i].elapsedSinceLastRead);
+
+          // get time
+          char timeString[20];
+          getTime(timeString, sizeof(timeString));
+          // print log
+          printf("%s | Sensor ID: %3d | Value: %3d | Status: OK\n", timeString, sensorList[i].sensorID, sensorList[i].sensorValue);
+          // write log to file
+          char logLine[65];
+          snprintf(logLine, sizeof(logLine), "%s | Sensor ID: %3d | Value: %3d | Status: OK\n", timeString, sensorList[i].sensorID, sensorList[i].sensorValue);
+          writeSensorLogFile(logLine, logFileName);
         }
 
         // resets elapsed since last read for each sensor to 0
@@ -311,6 +391,8 @@ int checkMallocSensorList(sensorRegister **mallocSensorList, int *sensorListCapa
 
   printf("\nmallocSensorList size is now %d!\n", *sensorListCapacity);
 }
+
+
 
 void shell(sensorRegister *sensorList, int sensorListCapacity, int *numCreatedSensors, int *sensorCountdown) {
   char userChoice[13] = "\0";
@@ -486,9 +568,16 @@ int main() {
   // random based on time
   srand(time(NULL));
 
-  char stringBuffer[50];
+  char stringBuffer[20];
   getTime(stringBuffer, sizeof(stringBuffer));
+  // replaceChar(stringBuffer, ' ', '_');
   printf("%s\n", stringBuffer);
+
+  // char logLine[65];
+  // snprintf(logLine, sizeof(logLine), "%s | Sensor ID: %3d | Value: %3d | Status: OK", stringBuffer, 3, 144);
+  // writeSensorLogFile(logLine);
+
+  // writeSensorLogFile();
 
   int sensorListCapacity = 2;
   int numCreatedSensors = 0;
